@@ -1,3 +1,5 @@
+const dotenv = require('dotenv');
+dotenv.config();
 var request = require('request');
 var cheerio = require('cheerio');
 const axios = require('axios');
@@ -8,49 +10,45 @@ var data;
 console.log('scraper started');
 
 var config = {
-    headers: {'X-My-Custom-Header': 'Header-Value'}
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'}
   };
 
+console.log(process.env.domain);
+
  axios.get(
-        'http://ec2-13-233-84-193.ap-south-1.compute.amazonaws.com:1337/refrigerators/',
+        process.env.domain,
       ).then(function(response){
     
       data = response.data;
-      getWarranty(data[0].product_id_flipkart, data[0]._id);
+    //  getWarranty(data[0].product_id_flipkart,data[0]._id);
+      data.forEach((element)=>{
+          getWarranty(element.product_id_flipkart,element._id);
+        })
       
-
-    //   data.forEach((element)=>{
-    //       getWarranty(element.product_id_flipkart);
-    //   })
-      });
+      }).catch(e => console.log(e));
 function getWarranty(id, fid) {
-    request.get(`https://www.flipkart.com/test/p/test?pid=${id}`, function(
-      error,
-      response,
-      data
+    axios.get(process.env.flipkart+id).then(function(response
     ) {
-      const $ = cheerio.load(data);
+      const $ = cheerio.load(response.data);
       var war =  $("._3h7IGd")  
             .text()
     .trim();
       var rate = $("._1i0wk8").text().trim();
-      var rc = $(".row _2yc1Qo > .col-12-12").text().trim();
-      var rcount = rc.substring(0,rc.length-9);
       var warranty = war.substring(0, war.length-9);
 
-      console.log(rcount);
       console.log(warranty);
       console.log(rate);
-      console.log(typeof(fid));
-      axios.post(
-        "http://ec2-13-233-84-193.ap-south-1.compute.amazonaws.com:1337/refrigerators/5d5626414be5372232eefe7f", 
-        querystring.stringify({ warranty: warranty })
-        ).then(r => console.log(r))
-        .catch(e => console.log(e));
+      await axios.put(
+        "http://ec2-13-233-84-193.ap-south-1.compute.amazonaws.com:1337/refrigerators/"+fid, 
+        querystring.stringify({ warranty: warranty }),
+        config
+        );
+     //    .then(r => console.log(r));
+    //     .catch(e => console.log(e));
     });
   }
 
-  getWarranty(pid);
+//getWarranty(pid, "5d5626414be5372232eefe7f");
 // setInterval(getWarranty, 1500, "RFREVYSXE2YJJHSG");
 
   
